@@ -12,11 +12,17 @@ namespace Templar
         internal DiscordSocketClient Client;
         internal EventService EventService;
         internal CommandService CommandService;
+        internal static string DatabaseConnString;
 
-        public Func<SocketCommandContext, bool> RunCommand; 
+        public Func<SocketMessage, Task<bool>> RunCommand;
+        public string Prefix { get; }
 
-        public Bot(string errorWebhook)
+
+        public Bot(string errorWebhook, string databaseConn, string prefix)
         {
+            DatabaseConnString = databaseConn;
+            Prefix = prefix;
+
             Client = new DiscordSocketClient(new DiscordSocketConfig()
             {
                 AlwaysDownloadUsers = true,

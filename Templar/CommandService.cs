@@ -31,11 +31,16 @@ namespace Templar
         [Event(Events.MessageReceived)]
         public static async Task BotMessageReceived(SocketMessage arg)
         {
-            if (!(arg is SocketUserMessage msg)) { return; }
+            if (!(_Bot.RunCommand is null || await _Bot.RunCommand.Invoke(arg)))
+            {
+                return;
+            }
+
+            if (arg is not SocketUserMessage msg) { return; }
 
             // Make sure it's prefixed (with ! or bot mention), and that caller isn't a bot
             var argPos = 0;
-            var hasPrefix = msg.HasStringPrefix("!", ref argPos) || msg.HasMentionPrefix(_Bot.Client.CurrentUser, ref argPos);
+            var hasPrefix = msg.HasStringPrefix(_Bot.Prefix, ref argPos) || msg.HasMentionPrefix(_Bot.Client.CurrentUser, ref argPos);
             if (!(hasPrefix) || msg.Author.IsBot) { return; }
 
             var remainder = msg.Content.SplitAt(argPos).right;
@@ -51,10 +56,7 @@ namespace Templar
                 }
             }
 
-            if (_Bot.RunCommand is null || _Bot.RunCommand.Invoke(context))
-            {
-                await _Commands.ExecuteAsync(context, argPos, null);
-            }
+            await _Commands.ExecuteAsync(context, argPos, null);
         }
     }
 
