@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
 
@@ -29,5 +30,29 @@ namespace Templar
 
         public static (string left, string right) SplitAt(this string s, int index) =>
             index == -1 ? (s, "") : (s.Substring(0, index), s[index..]);
+
+        public static List<string> SplitWithLength(this string s, int length)
+        {
+            var toReturn = new List<string>();
+
+            while (s.Length > length)
+            {
+                var index = s.Substring(0, length).LastIndexOf("\n");
+                if (index == -1)
+                {
+                    s = s.Insert(length - 2, "\n");
+                    continue;
+                }
+                else if (index == 0)
+                {
+                    s = s.Insert(length - 2, "\n");
+                    continue;
+                }
+                toReturn.Add(s.Substring(0, index));
+                s = s[index..];
+            }
+            toReturn.Add(s);
+            return toReturn;
+        }
     }
 }

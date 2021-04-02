@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Archon": {
+      "commandName": "Project",
+      "commandLineArgs": "..\\config.json"
+    }
+  }
+}

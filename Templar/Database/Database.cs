@@ -17,15 +17,25 @@ namespace Templar.Database
             TableName = tableName;
         }
 
-        public async Task<int> DeleteByProperty(string propName, object value)
+        public async Task<int> DeleteByProperty(string propName, object value, DatabaseComparer comparer = DatabaseComparer.Equals)
         {
-            return ExecuteQuery($@"DELETE FROM {TableName} WHERE {propName}=@p0", value);
+            var t = 
+                comparer == DatabaseComparer.Equals ? "=" :
+                comparer == DatabaseComparer.Contains ? " LIKE " : "";
+            value = comparer == DatabaseComparer.Contains ? $"%{value}%" : value;
+
+            return ExecuteQuery($@"DELETE FROM {TableName} WHERE {propName}{t}@p0", value);
         }
 
-        public async Task<List<T>> GetByProperty(string propName, object value)
+        public async Task<List<T>> GetByProperty(string propName, object value, DatabaseComparer comparer = DatabaseComparer.Equals)
         {
+            var t =
+                comparer == DatabaseComparer.Equals ? "=" :
+                comparer == DatabaseComparer.Contains ? " LIKE " : "";
+            value = comparer == DatabaseComparer.Contains ? $"%{value}%" : value;
+
             var toReturn = new List<T>();
-            (var q, var conn) = RequestQuery($"SELECT * FROM {TableName} WHERE {propName}=@p0;", value);
+            (var q, var conn) = RequestQuery($"SELECT * FROM {TableName} WHERE {propName}{t}@p0;", value);
             while (q.Read())
             {
                 toReturn.Add(await Convert(q));
@@ -59,7 +69,7 @@ namespace Templar.Database
         internal static async Task<T> Convert(MySqlDataReader r)
         {
             var t = new T();
-            var fields = typeof(T).GetFields(BindingFlags.Public);
+            var fields = typeof(T).GetFields();
 
             foreach (var column in await r.GetColumnSchemaAsync())
             {
@@ -67,7 +77,15 @@ namespace Templar.Database
                 if (field is null) { continue; }
 
                 var v = r[field.Name];
-                field.SetValue(t, v);
+
+                if (v.GetType() == typeof(long) && field.FieldType == typeof(ulong))
+                {
+                    field.SetValue(t, System.Convert.ToUInt64(v));
+                }
+                else
+                {
+                    field.SetValue(t, v);
+                }
             }
 
             return t;
@@ -123,5 +141,11 @@ namespace Templar.Database
             }
             return cmd;
         }
+    }
+
+    public enum DatabaseComparer
+    {
+        Equals,
+        Contains,
     }
 }

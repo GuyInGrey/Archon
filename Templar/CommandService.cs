@@ -31,29 +31,35 @@ namespace Templar
         [Event(Events.MessageReceived)]
         public static async Task BotMessageReceived(SocketMessage arg)
         {
-            if (!(_Bot.RunCommand is null || await _Bot.RunCommand.Invoke(arg)))
+            if (arg is not SocketUserMessage msg) { return; }
+            var context = new SocketCommandContext(_Bot.Client, msg);
+
+            if (!(_Bot.RunCommand is null || await _Bot.RunCommand.Invoke(context)))
             {
                 return;
             }
 
-            if (arg is not SocketUserMessage msg) { return; }
+            string prefix = null;
+            if (_Bot.GetPrefix is not null)
+            {
+                prefix = await _Bot.GetPrefix(context);
+            }
 
             // Make sure it's prefixed (with ! or bot mention), and that caller isn't a bot
             var argPos = 0;
-            var hasPrefix = msg.HasStringPrefix(_Bot.Prefix, ref argPos) || msg.HasMentionPrefix(_Bot.Client.CurrentUser, ref argPos);
+            var hasPrefix = (prefix != null && msg.HasStringPrefix(prefix, ref argPos)) || msg.HasMentionPrefix(_Bot.Client.CurrentUser, ref argPos);
             if (!(hasPrefix) || msg.Author.IsBot) { return; }
 
             var remainder = msg.Content.SplitAt(argPos).right;
-            (var commandName, var suffix) = remainder.SplitAt(remainder.IndexOf(' '));
+            (var commandName, _) = remainder.SplitAt(remainder.IndexOf(' '));
 
-            var context = new SocketCommandContext(_Bot.Client, msg);
-            var cmd = _Commands.Commands.FirstOrDefault(c => c.Name == commandName);
-            if (!(cmd is null))
+            var cmd = _Commands.Commands.FirstOrDefault(c => c.Aliases.Any(a => a.StartsWith(commandName)));
+            if (cmd is not null)
             {
-                if (!(cmd.Attributes.FirstOrDefault(a => a is TypingAttribute) is null))
-                {
-                    _TypingStates.Add(new TypingState(msg.Id, msg.Channel.EnterTypingState()));
-                }
+                //if (cmd.Attributes.Any(a => a is TypingAttribute))
+                //{
+                //    _TypingStates.Add(new TypingState(msg.Id, msg.Channel.EnterTypingState()));
+                //}
             }
 
             await _Commands.ExecuteAsync(context, argPos, null);

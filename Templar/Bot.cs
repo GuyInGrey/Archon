@@ -9,19 +9,18 @@ namespace Templar
 {
     public class Bot
     {
-        internal DiscordSocketClient Client;
+        public DiscordSocketClient Client;
         internal EventService EventService;
         internal CommandService CommandService;
         internal static string DatabaseConnString;
 
-        public Func<SocketMessage, Task<bool>> RunCommand;
-        public string Prefix { get; }
+        public Func<SocketCommandContext, Task<bool>> RunCommand;
+        public Func<SocketCommandContext, Task<string>> GetPrefix;
 
-
-        public Bot(string errorWebhook, string databaseConn, string prefix)
+        public Bot(string errorWebhook, string databaseConn)
         {
             DatabaseConnString = databaseConn;
-            Prefix = prefix;
+            Log.Bot = this;
 
             Client = new DiscordSocketClient(new DiscordSocketConfig()
             {
@@ -99,6 +98,12 @@ namespace Templar
             await Client.StartAsync();
 
             await Task.Delay(-1);
+        }
+
+        [Event(Events.Log)]
+        public static async Task HandleLog(LogMessage msg)
+        {
+            await Log.FromLogMessage(msg).Post();
         }
     }
 }

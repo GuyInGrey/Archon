@@ -9,7 +9,7 @@ using Templar.Database;
 
 namespace Archon
 {
-    public class UtilityCmd : ModuleBase<SocketCommandContext>
+    public class TagCmd : ModuleBase<SocketCommandContext>
     {
         static Database<Tag> Database = new ("tags");
 
@@ -32,18 +32,36 @@ namespace Archon
             await Context.ReactOk();
         }
 
-        public static async Task<bool> RunTag(SocketMessage msg, string prefix)
+        public static async Task<bool> RunTag(SocketMessage arg, string prefix)
         {
-
+            if (arg is not SocketUserMessage msg) { return false; }
 
             var argPos = 0;
-            var hasPrefix = msg.HasStringPrefix(prefix, ref argPos));
+            var hasPrefix = msg.HasStringPrefix(prefix, ref argPos);
             if (!(hasPrefix) || msg.Author.IsBot) { return false; }
 
             var remainder = msg.Content.SplitAt(argPos).right;
             (var commandName, var suffix) = remainder.SplitAt(remainder.IndexOf(' '));
 
-            var tags = Database.GetByProperty("Name", );
+            var tags = await Database.GetByProperty("Name", commandName);
+            if (tags.Count <= 0) { return false; }
+            var tag = tags[0];
+
+            await PostTag(tag, msg.Channel, suffix, msg.Author);
+
+            return true;
+        }
+
+        public static async Task PostTag(Tag tag, ISocketMessageChannel channel, string suffix, SocketUser author)
+        {
+            if (tag.Content != string.Empty)
+            {
+                await channel.SendMessageAsync(tag.Content.Replace("{author}", author.Mention).Replace("{suffix}", suffix));
+            }
+            foreach (var a in tag.GetAttachments())
+            {
+                await channel.SendMessageAsync(a);
+            }
         }
     }
 }

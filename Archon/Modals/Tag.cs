@@ -1,7 +1,10 @@
-﻿using Templar.Database;
+﻿using System;
+
+using Templar.Database;
 
 namespace Archon
 {
+    [Serializable]
     public class Tag : IDatabaseModal
     {
         public string Name;
@@ -12,7 +15,7 @@ namespace Archon
         {
             if (Attachments is null || Attachments == "")
             {
-                return new string[0];
+                return Array.Empty<string>();
             }
 
             return Attachments.Split(",");

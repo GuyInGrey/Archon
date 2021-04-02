@@ -4,6 +4,7 @@ using Templar.Database;
 
 namespace Archon
 {
+    [Serializable]
     public class Party : IDatabaseModal
     {
         public ulong Host;
