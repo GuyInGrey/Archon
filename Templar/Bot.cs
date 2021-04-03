@@ -5,10 +5,14 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 
+using MySql.Data.MySqlClient;
+
 namespace Templar
 {
     public class Bot
     {
+        public static Bot Instance;
+
         public DiscordSocketClient Client;
         internal EventService EventService;
         internal CommandService CommandService;
@@ -17,24 +21,45 @@ namespace Templar
         public Func<SocketCommandContext, Task<bool>> RunCommand;
         public Func<SocketCommandContext, Task<string>> GetPrefix;
 
+        public bool FailedDatabaseCheck { get; }
+
         public Bot(string errorWebhook, string databaseConn)
         {
-            DatabaseConnString = databaseConn;
+            Instance = this;
             Log.Bot = this;
+            DatabaseConnString = databaseConn;
 
+            Console.WriteLine("Testing database connection...");
+            try
+            {
+                var conn = new MySqlConnection(DatabaseConnString);
+                conn.Dispose();
+            }
+            catch (Exception e)
+            {
+                FailedDatabaseCheck = true;
+                Console.WriteLine("Failed database connection test.");
+                Log.FromException(e).Post().GetAwaiter().GetResult();
+            }
+            Console.WriteLine("Connection successful.");
+
+            Console.WriteLine("Creating DiscordSocketClient...");
             Client = new DiscordSocketClient(new DiscordSocketConfig()
             {
                 AlwaysDownloadUsers = true,
                 DefaultRetryMode = RetryMode.AlwaysRetry,
                 LargeThreshold = 250,
-                LogLevel = LogSeverity.Warning,
+                LogLevel = LogSeverity.Info,
                 RateLimitPrecision = RateLimitPrecision.Millisecond,
                 ExclusiveBulkDelete = true,
             });
-
+            
+            Console.WriteLine("Creating EventService...");
             EventService = new EventService();
+            Console.WriteLine("Creating CommandService...");
             CommandService = new CommandService(this);
 
+            Console.WriteLine("Registering Events...");
             RegisterEvents();
         }
 
@@ -84,6 +109,7 @@ namespace Templar
             Client.UserVoiceStateUpdated += async (a, b, c) => OnEvent("UserVoiceStateUpdated", a, b, c);
             Client.VoiceServerUpdated += async (a) => OnEvent("VoiceServerUpdated", a);
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+            Console.WriteLine("Done registering events.");
         }
 
         internal void OnEvent(string name, params object[] args) => EventService.OnEvent(name, args);
@@ -94,10 +120,16 @@ namespace Templar
         /// <param name="token">The Discord bot token</param>
         public async Task Start(string token)
         {
+            if (FailedDatabaseCheck) { return; }
+
+            Console.WriteLine("Logging in...");
             await Client.LoginAsync(TokenType.Bot, token);
+            Console.WriteLine("Starting...");
             await Client.StartAsync();
 
+            Console.WriteLine("Waiting Infitely...");
             await Task.Delay(-1);
+            Console.WriteLine("You should not see this text.");
         }
 
         [Event(Events.Log)]
@@ -105,5 +137,11 @@ namespace Templar
         {
             await Log.FromLogMessage(msg).Post();
         }
+
+        public static EmbedBuilder CreateEmbed() =>
+            new EmbedBuilder()
+            .WithCurrentTimestamp()
+            .WithColor(Color.Blue)
+            .WithAuthor(Bot.Instance.Client.CurrentUser);
     }
 }

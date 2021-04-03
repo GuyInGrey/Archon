@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -21,8 +22,15 @@ namespace Templar
         {
             Console.WriteLine("Starting Command Service..");
             _Bot = bot;
-            _Commands = new DiscordCommands();
-            _Commands.Log += async (a) => { bot.EventService.OnEvent("Log", a); };
+            _Commands = new DiscordCommands(new CommandServiceConfig()
+            {
+                LogLevel = Discord.LogSeverity.Info,
+                CaseSensitiveCommands = false,
+                DefaultRunMode = RunMode.Async,
+                IgnoreExtraArgs = false,
+                SeparatorChar = ' ',
+            });
+            _Commands.Log += async (a) => { Console.WriteLine("BOB"); bot.EventService.OnEvent("Log", a); };
             _Commands.CommandExecuted += async (a, b, c) => { bot.EventService.OnEvent("CommandExecuted", a, b, c); };
             _Commands.AddModulesAsync(Assembly.GetEntryAssembly(), null).GetAwaiter().GetResult();
             Console.WriteLine("Done Starting Command Service");
@@ -40,7 +48,7 @@ namespace Templar
             }
 
             string prefix = null;
-            if (_Bot.GetPrefix is not null)
+            if (_Bot.GetPrefix is not null && !Debugger.IsAttached)
             {
                 prefix = await _Bot.GetPrefix(context);
             }

@@ -2,7 +2,7 @@
   "profiles": {
     "Archon": {
       "commandName": "Project",
-      "commandLineArgs": "..\\config.json"
+      "commandLineArgs": "C:\\Users\\NoahL\\source\\repos\\Archon\\Archon\\bin\\Debug\\config.json"
     }
   }
 }

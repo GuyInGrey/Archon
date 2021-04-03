@@ -11,19 +11,12 @@ namespace Archon
         public string Content;
         public string Attachments;
 
-        public string[] GetAttachments()
-        {
-            if (Attachments is null || Attachments == "")
-            {
-                return Array.Empty<string>();
-            }
+        public string[] GetAttachments() =>
+            Attachments is null || Attachments == "" ?
+            Array.Empty<string>() :
+            Attachments.Split(",");
 
-            return Attachments.Split(",");
-        }
-
-        public void SetAttachments(string[] args)
-        {
+        public void SetAttachments(string[] args) =>
             Attachments = string.Join(",", args);
-        }
     }
 }

@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
+using System.Net;
 using System.Reflection;
 using System.Threading.Tasks;
 
@@ -53,6 +56,36 @@ namespace Templar
             }
             toReturn.Add(s);
             return toReturn;
+        }
+
+        public static long GetRemoteFileSize(string url)
+        {
+            var webRequest = WebRequest.Create(url);
+            webRequest.Method = "HEAD";
+            using var webResponse = webRequest.GetResponse();
+            return long.Parse(webResponse.Headers.Get("Content-Length"));
+        }
+
+        public static void DownloadFile(string url, string dir)
+        {
+            using var client = new WebClient();
+            client.DownloadFile(url, Path.Combine(dir, Path.GetFileName(url)));
+        }
+
+        public static string DownloadString(string url)
+        {
+            using var client = new WebClient();
+            return client.DownloadString(new Uri(url));
+        }
+
+        public static void DecompressGZip(string file, string newFile)
+        {
+            var fileToDecompress = new FileInfo(file);
+            using var originalFileStream = fileToDecompress.OpenRead();
+            var currentFileName = fileToDecompress.FullName;
+            using var decompressedFileStream = File.Create(newFile);
+            using var decompressionStream = new GZipStream(originalFileStream, CompressionMode.Decompress);
+            decompressionStream.CopyTo(decompressedFileStream);
         }
     }
 }

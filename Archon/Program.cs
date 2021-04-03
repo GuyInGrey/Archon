@@ -46,6 +46,7 @@ namespace Archon
                 return null;
             });
 
+            Console.WriteLine("Creating bot instance.");
             Bot = new Bot(webhook, database)
             {
                 RunCommand = async (context) =>
@@ -59,32 +60,38 @@ namespace Archon
 
             Console.WriteLine("Starting bot!");
             await Bot.Start(token);
+            Console.WriteLine("You should not see this text.");
         }
 
         private static async Task PostLog(Log msg)
         {
             PostToConsole(msg);
 
-            IChannel channelToPost = null;
-            if (msg.Server != 0)
+            try
             {
-                var conf = await ServerConfigLoader.Get(msg.Server);
-                if (conf.ContainsKey("botErrorLog") && 
-                    ulong.TryParse(conf["botErrorLog"].ToString(), out var id))
+                IChannel channelToPost = null;
+                if (msg.Server != 0)
                 {
-                    channelToPost = Bot.Client.GetChannel(id);
+                    var conf = await ServerConfigLoader.Get(msg.Server);
+                    if (conf.ContainsKey("botErrorLog") &&
+                        ulong.TryParse(conf["botErrorLog"].ToString(), out var id))
+                    {
+                        channelToPost = Bot.Client.GetChannel(id);
+                    }
                 }
-            }
-            else
-            {
-                channelToPost = await Bot.Client.GetUser(126481324017057792).GetOrCreateDMChannelAsync();
-            }
+                else
+                {
+                    var guyingrey = Bot.Client.GetUser(126481324017057792);
+                    if (guyingrey is null) { return; }
+                    channelToPost = await guyingrey.GetOrCreateDMChannelAsync();
+                }
 
-            if (channelToPost is ITextChannel channel)
-            {
-                var e = msg.ToEmbed(Bot.Client.CurrentUser).Build();
-                await channel.SendMessageAsync(embed: e);
-            }
+                if (channelToPost is ITextChannel channel)
+                {
+                    var e = msg.ToEmbed(Bot.Client.CurrentUser).Build();
+                    await channel.SendMessageAsync(embed: e);
+                }
+            } catch { }
         }
 
         private static void PostToConsole(Log log)

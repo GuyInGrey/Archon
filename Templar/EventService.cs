@@ -46,6 +46,9 @@ namespace Templar
 
         public int OnEvent(string name, params object[] args)
         {
+            Console.ForegroundColor = ConsoleColor.Blue;
+            Console.WriteLine($"Event: {name}");
+            Console.ForegroundColor = ConsoleColor.White;
             var executed = 0;
             foreach (var e in RegisteredEvents)
             {
