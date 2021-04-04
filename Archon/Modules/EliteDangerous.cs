@@ -5,9 +5,11 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Web;
 
 using Discord;
 using Discord.Commands;
+using Discord.WebSocket;
 
 using Newtonsoft.Json.Linq;
 
@@ -19,7 +21,7 @@ namespace Archon.Modules
     [Group("elite")]
     public class EliteDangerous : ModuleBase<SocketCommandContext>
     {
-        public static string TempFolder => Path.Combine(Directory.GetCurrentDirectory(), @"temp\");
+        public static string TempFolder => Path.Combine(Directory.GetCurrentDirectory(), @"temp2/");
 
         public static string DumpFileUrl => "https://www.edsm.net/dump/systemsPopulated.json.gz";
         public static string GalnetUrl => "https://www.alpha-orbital.com/galnet-feed";
@@ -27,6 +29,32 @@ namespace Archon.Modules
         public static string FleetCarrierUrl => "https://us-central1-canonn-api-236217.cloudfunctions.net/postFleetCarriers?serial=";
 
         public static ITextChannel Channel => Bot.Instance.Client.GetChannel(827930180340416512) as ITextChannel;
+
+        [Event(Events.Ready)]
+        public static async Task RegisterCmds()
+        {
+            await Bot.Instance.Client.Rest.CreateGuildCommand(new SlashCommandCreationProperties()
+            {
+                Name = "elite",
+                Description = "Commands Related To Elite: Dangerous",
+                Options = new List<ApplicationCommandOptionProperties>()
+                { 
+                    new ApplicationCommandOptionProperties()
+                    {
+                        Name = "status",
+                        Description = "Get Elite's Server Status",
+                        Type = ApplicationCommandOptionType.SubCommand,
+                        Required = false,
+                    }
+                },
+            }, 769057370646511628);
+        }
+
+        [Interaction("elite")]
+        public static async Task Interaction(SocketInteraction i)
+        {
+            await i.FollowupAsync(i.Data.Id.ToString());
+        }
 
         //[Clockwork(1000 * 60 * 60 /* 60 minutes */)]
         [Event(Events.Ready)]
@@ -86,35 +114,58 @@ namespace Archon.Modules
 
         public static async Task UpdateChannelDescription()
         {
+            Console.WriteLine("Beginning Faction Search");
             var populatedSystemsPath = TempFolder + Path.GetFileNameWithoutExtension(DumpFileUrl);
-            var systemsWeAreIn = new List<(JObject, JObject)>(); // (system, faction)
+            var systemsWeAreIn = new List<(string, JObject)>(); // (system, faction)
+
+            var factionRegex = new Regex("\"factions\":(\\[(?:(?:{[^}]+}),)+{[^}]+}\\])");
+            var systemNameRegex = new Regex("\"name\":\"([^\"]+)\"");
 
             using var lineReader = new StreamReader(File.OpenRead(populatedSystemsPath), Encoding.UTF8, true, 4096);
             var line = "";
             while (!((line = lineReader.ReadLine()) is null))
             {
-                line = line.Trim();
-                if (line.EndsWith(",")) { line = line[0..^1]; }
-                if (line.Length < 5) { continue; }
+                //line = line.Trim();
+                //if (line.EndsWith(",")) { line = line[0..^1]; }
+                //if (line.Length < 5) { continue; }
+                //if (!line.Contains("factions")) { continue; }
 
-                var system = JObject.Parse(line);
-                if (!system.ContainsKey("factions")) { continue; }
-                var factions = system["factions"] as JArray;
-                foreach (JObject faction in factions)
-                {
-                    if (faction["name"].Value<string>() == "LDS Enterprises")
-                    {
-                        systemsWeAreIn.Add((system, faction));
-                    }
-                }
+                //var match = factionRegex.Match(line);
+                //if (match.Groups.Count < 2) { continue; }
+
+                //var system = systemNameRegex.Match(line).Groups[1].Value;
+
+                //Console.WriteLine(line + "\n\n-\n\n");
+
+                //var factions = JArray.Parse(match.Groups[1].Value);
+                //foreach (JObject faction in factions)
+                //{
+                //    if (faction["name"].Value<string>() == "LDS Enterprises")
+                //    {
+                //        systemsWeAreIn.Add((system, faction));
+                //    }
+                //}
+
+
+                //Console.WriteLine($"\n\nCount: {match.Groups.Count}\n{match.Groups[1].Value}\n=");
+
+                //var system = JObject.Parse(line);
+                //if (!system.ContainsKey("factions")) { continue; }
+                //var factions = system["factions"] as JArray;
+                //foreach (JObject faction in factions)
+                //{
+                //    if (faction["name"].Value<string>() == "LDS Enterprises")
+                //    {
+                //        systemsWeAreIn.Add((system, faction));
+                //    }
+                //}
             }
+            Console.WriteLine("Finished Faction Search");
 
             var topic = "\"Fly Dangerously, CMDRs, but never without a rebuy\" [LDS Enterprises Presence] \n(";
             topic += string.Join(") \n(", systemsWeAreIn.Select(s =>
             {
                 (var system, var faction) = s;
-
-                var name = system["name"].Value<string>();
 
                 var state = faction["state"].Value<string>();
                 state = state == "None" ? "No State" : state;
@@ -124,7 +175,7 @@ namespace Archon.Modules
 
                 var happiness = faction["happiness"];
 
-                return $"[{name}] {influence}, {state}, {happiness}";
+                return $"[{system}] {influence}, {state}, {happiness}";
             })) + ");";
 
             try // Rate limit catcher
@@ -177,10 +228,53 @@ namespace Archon.Modules
             var e = Bot.CreateEmbed()
                 .WithTitle(carrier["name"].Value<string>())
                 .AddField("Location", carrier["current_system"].Value<string>())
-                .AddField("Previous Location", carrier["previous_system"].Value<string>())
                 .AddField("Services", servicesString);
 
             await ReplyAsync(embed: e.Build());
+        }
+
+        [Command("distance")]
+        public async Task Distance(string system1, string system2)
+        {
+            var (x, y, z) = GetCoords(system1);
+            if (float.IsNaN(x))
+            {
+                await ReplyAsync($"`{system1}` is not a known system.");
+                return;
+            }
+            var sys2 = GetCoords(system2);
+            if (float.IsNaN(sys2.x))
+            {
+                await ReplyAsync($"`{system2}` is not a known system.");
+                return;
+            }
+
+            var distance = (float)Math.Sqrt(
+                Math.Pow(x - sys2.x, 2) +
+                Math.Pow(y - sys2.y, 2) +
+                Math.Pow(z - sys2.z, 2));
+
+            var e = Bot.CreateEmbed()
+                .WithTitle("Distance")
+                .WithDescription($"{system1} - {system2}\n{distance:0.00} ly");
+
+            await ReplyAsync(embed: e.Build());
+        }
+
+        public static (float x, float y, float z) GetCoords(string systemName)
+        {
+            systemName = HttpUtility.UrlEncode(systemName);
+            var url = EDSMUrl + $"api-v1/system?showCoordinates=1&systemName={systemName}";
+            var content = Extensions.DownloadString(url);
+
+            if (content.Contains("["))
+            {
+                return (float.NaN, float.NaN, float.NaN);
+            }
+
+            var obj = JObject.Parse(content);
+            var coords = obj["coords"] as JObject;
+            return (coords["x"].Value<float>(), coords["y"].Value<float>(), coords["z"].Value<float>());
         }
     }
 }

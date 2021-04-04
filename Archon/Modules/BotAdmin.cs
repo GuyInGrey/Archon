@@ -8,7 +8,7 @@ using Templar;
 
 namespace Archon
 {
-    public class BotAdmin : ModuleBase<SocketCommandContext>
+    public partial class BotAdmin : ModuleBase<SocketCommandContext>
     {
         [Command("testerror")]
         [RequireOwner]

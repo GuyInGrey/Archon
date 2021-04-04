@@ -19,6 +19,8 @@ namespace Archon
 
         public static async Task Main(string[] args)
         {
+            Console.WriteLine($"Current OS: {Environment.OSVersion}");
+
             var configPath = args.Length != 0 ? args[0] : @"config.json";
             if (!File.Exists(configPath))
             {

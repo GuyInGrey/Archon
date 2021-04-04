@@ -135,6 +135,9 @@ namespace Templar
         [Event(Events.Log)]
         public static async Task HandleLog(LogMessage msg)
         {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine(msg);
+            Console.ForegroundColor = ConsoleColor.White;
             await Log.FromLogMessage(msg).Post();
         }
 

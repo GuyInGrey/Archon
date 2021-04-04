@@ -18,6 +18,8 @@ namespace Templar
         private static DiscordCommands _Commands;
         private static List<TypingState> _TypingStates;
 
+        private static List<(InteractionAttribute, MethodInfo)> RegisteredInteractions;
+
         public CommandService(Bot bot)
         {
             Console.WriteLine("Starting Command Service..");
@@ -30,10 +32,42 @@ namespace Templar
                 IgnoreExtraArgs = false,
                 SeparatorChar = ' ',
             });
-            _Commands.Log += async (a) => { Console.WriteLine("BOB"); bot.EventService.OnEvent("Log", a); };
+            _Bot.Client.InteractionCreated += async a =>
+            {
+                await new Log(a.Guild is null ? 0 : a.Guild.Id)
+                {
+                    Title = "Interaction",
+                    Content = a.Data.Name,
+                    Fields = new Dictionary<string, string>()
+                    {
+                        { "ID", a.Data.Id.ToString() }
+                    }
+                }.Post();
+                RegisteredInteractions.Where(i => i.Item1.Name == a.Data.Name)
+                    .ToList().ForEach(i =>
+                    {
+                        i.Item2.Invoke(null, new object[] { a });
+                    });
+            };
+            _Commands.Log += async a => { Console.WriteLine("BOB"); bot.EventService.OnEvent("Log", a); };
             _Commands.CommandExecuted += async (a, b, c) => { bot.EventService.OnEvent("CommandExecuted", a, b, c); };
             _Commands.AddModulesAsync(Assembly.GetEntryAssembly(), null).GetAwaiter().GetResult();
             Console.WriteLine("Done Starting Command Service");
+
+            RegisteredInteractions = new List<(InteractionAttribute, MethodInfo)>();
+
+            Console.WriteLine("Registering Interactions...");
+            foreach (var m in 
+                AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(a => a.GetTypes())
+                .SelectMany(t => t.GetMethods()))
+            {
+                if (m.HasAttribute<InteractionAttribute>(out var att))
+                {
+                    RegisteredInteractions.Add((att, m));
+                }
+            }
+            Console.WriteLine("Done Registering Interactions");
         }
 
         [Event(Events.MessageReceived)]

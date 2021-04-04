@@ -3,9 +3,43 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
+    <ItemGroup>
+      <Compile Remove="Eval\TemplateGet.cs" />
+      <Compile Remove="Eval\TemplatePost.cs" />
+    </ItemGroup>
+    <ItemGroup>
+      <None Include="Eval\TemplateGet.cs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Include="Eval\TemplatePost.cs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="3.9.0" />
+      <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.9.0" />
+    </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Templar\Templar.csproj" />
   </ItemGroup>
 
+
+    <ItemGroup>
+        <Reference Include="Discord.Net.Commands">
+            <HintPath>..\..\Discord.Net\src\Discord.Net.Commands\bin\Debug\netstandard2.1\Discord.Net.Commands.dll</HintPath>
+        </Reference>
+        <Reference Include="Discord.Net.Core">
+            <HintPath>..\..\Discord.Net\src\Discord.Net.Core\bin\Debug\netstandard2.1\Discord.Net.Core.dll</HintPath>
+        </Reference>
+        <Reference Include="Discord.Net.Rest">
+            <HintPath>..\..\Discord.Net\src\Discord.Net.Rest\bin\Debug\netstandard2.1\Discord.Net.Rest.dll</HintPath>
+        </Reference>
+        <Reference Include="Discord.Net.Webhook">
+            <HintPath>..\..\Discord.Net\src\Discord.Net.Webhook\bin\Debug\netstandard2.1\Discord.Net.Webhook.dll</HintPath>
+        </Reference>
+        <Reference Include="Discord.Net.WebSocket">
+            <HintPath>..\..\Discord.Net\src\Discord.Net.WebSocket\bin\Debug\netstandard2.1\Discord.Net.WebSocket.dll</HintPath>
+        </Reference>
+    </ItemGroup>
 </Project>
