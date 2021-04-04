@@ -11,6 +11,7 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 using Templar;
@@ -83,6 +84,16 @@ namespace Archon.Modules
                                 Description = "Get info about a system.",
                                 Type = ApplicationCommandOptionType.SubCommand,
                                 Required = false,
+                                Options = new List<ApplicationCommandOptionProperties>()
+                                {
+                                    new ApplicationCommandOptionProperties()
+                                    {
+                                        Name = "system",
+                                        Required = true,
+                                        Type = ApplicationCommandOptionType.String,
+                                        Description = "The system to get info about.",
+                                    },
+                                }
                             },
                             new ApplicationCommandOptionProperties()
                             {
@@ -171,7 +182,7 @@ namespace Archon.Modules
         [Interaction("elite")]
         public static async Task Interaction(SocketInteraction i)
         {
-            await i.FollowupAsync(i.Data.ToString());
+            await i.FollowupAsync("```js\n" + JsonConvert.SerializeObject(i.Data, Formatting.Indented) + "\n```");
         }
 
         //[Clockwork(1000 * 60 * 60 /* 60 minutes */)]

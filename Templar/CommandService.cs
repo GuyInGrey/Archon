@@ -34,15 +34,6 @@ namespace Templar
             });
             _Bot.Client.InteractionCreated += async a =>
             {
-                await new Log(a.Guild is null ? 0 : a.Guild.Id)
-                {
-                    Title = "Interaction",
-                    Content = a.Data.Name,
-                    Fields = new Dictionary<string, string>()
-                    {
-                        { "ID", a.Data.Id.ToString() }
-                    }
-                }.Post();
                 RegisteredInteractions.Where(i => i.Item1.Name == a.Data.Name)
                     .ToList().ForEach(i =>
                     {
