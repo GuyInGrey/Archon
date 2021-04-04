@@ -33,27 +33,145 @@ namespace Archon.Modules
         [Event(Events.Ready)]
         public static async Task RegisterCmds()
         {
-            await Bot.Instance.Client.Rest.CreateGuildCommand(new SlashCommandCreationProperties()
+            foreach (var cmd in await Bot.Instance.Client.Rest.GetGuildApplicationCommands(769057370646511628))
+            {
+                await cmd.DeleteAsync();
+            }
+
+
+            var props = new SlashCommandCreationProperties()
             {
                 Name = "elite",
-                Description = "Commands Related To Elite: Dangerous",
+                Description = "Commands related to Elite: Dangerous.",
                 Options = new List<ApplicationCommandOptionProperties>()
-                { 
+                {
                     new ApplicationCommandOptionProperties()
                     {
                         Name = "status",
-                        Description = "Get Elite's Server Status",
+                        Description = "Get Elite's server status.",
                         Type = ApplicationCommandOptionType.SubCommand,
                         Required = false,
-                    }
+                    },
+                    new ApplicationCommandOptionProperties()
+                    {
+                        Name = "carrier",
+                        Description = "Get a fleet carrier's info.",
+                        Type = ApplicationCommandOptionType.SubCommand,
+                        Required = false,
+                        Options = new List<ApplicationCommandOptionProperties>()
+                        {
+                            new ApplicationCommandOptionProperties()
+                            {
+                                Name = "carrierid",
+                                Description = "The ID of the carrier to get info about.",
+                                Required = false,
+                                Type = ApplicationCommandOptionType.String,
+                            }
+                        }
+                    },
+                    new ApplicationCommandOptionProperties()
+                    {
+                        Name = "system",
+                        Description = "System commands.",
+                        Type = ApplicationCommandOptionType.SubCommandGroup,
+                        Required = false,
+                        Options = new List<ApplicationCommandOptionProperties>()
+                        {
+                            new ApplicationCommandOptionProperties()
+                            {
+                                Name = "info",
+                                Description = "Get info about a system.",
+                                Type = ApplicationCommandOptionType.SubCommand,
+                                Required = false,
+                            },
+                            new ApplicationCommandOptionProperties()
+                            {
+                                Name = "distance",
+                                Description = "Get the distance between two systems.",
+                                Type = ApplicationCommandOptionType.SubCommand,
+                                Required = false,
+                                Options = new List<ApplicationCommandOptionProperties>()
+                                {
+                                    new ApplicationCommandOptionProperties()
+                                    {
+                                        Name = "system1",
+                                        Required = true,
+                                        Type = ApplicationCommandOptionType.String,
+                                        Description = "The first system.",
+                                    },
+                                    new ApplicationCommandOptionProperties()
+                                    {
+                                        Name = "system2",
+                                        Required = true,
+                                        Type = ApplicationCommandOptionType.String,
+                                        Description = "The second system.",
+                                    }
+                                }
+                            },
+                            new ApplicationCommandOptionProperties()
+                            {
+                                Name = "bodies",
+                                Description = "Get celestial bodies in a system.",
+                                Type = ApplicationCommandOptionType.SubCommand,
+                                Required = false,
+                                Options = new List<ApplicationCommandOptionProperties>()
+                                {
+                                    new ApplicationCommandOptionProperties()
+                                    {
+                                        Name = "system",
+                                        Required = true,
+                                        Type = ApplicationCommandOptionType.String,
+                                        Description = "The system to get the bodies of.",
+                                    }
+                                },
+                            },
+                            new ApplicationCommandOptionProperties()
+                            {
+                                Name = "factions",
+                                Description = "Get factions in a system.",
+                                Type = ApplicationCommandOptionType.SubCommand,
+                                Required = false,
+                                Options = new List<ApplicationCommandOptionProperties>()
+                                {
+                                    new ApplicationCommandOptionProperties()
+                                    {
+                                        Name = "system",
+                                        Required = true,
+                                        Type = ApplicationCommandOptionType.String,
+                                        Description = "The system to get the factions of.",
+                                    }
+                                },
+                            },
+                        },
+                    },
+                    new ApplicationCommandOptionProperties()
+                    {
+                        Name = "faction",
+                        Description = "Get info and states of a faction.",
+                        Type = ApplicationCommandOptionType.SubCommand,
+                        Required = false,
+                        Options = new List<ApplicationCommandOptionProperties>()
+                        {
+                            new ApplicationCommandOptionProperties()
+                            {
+                                Name = "faction",
+                                Required = true,
+                                Type = ApplicationCommandOptionType.String,
+                                Description = "The faction to get info and states of.",
+                            }
+                        }
+                    },
                 },
-            }, 769057370646511628);
+            };
+
+            Console.WriteLine(props.ToString());
+            await Bot.Instance.Client.Rest.CreateGuildCommand(props, 769057370646511628);
         }
 
         [Interaction("elite")]
         public static async Task Interaction(SocketInteraction i)
         {
-            await i.FollowupAsync(i.Data.Id.ToString());
+            await i.FollowupAsync(i.Data.ToString());
         }
 
         //[Clockwork(1000 * 60 * 60 /* 60 minutes */)]
