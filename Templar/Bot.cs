@@ -49,7 +49,7 @@ namespace Templar
                 AlwaysDownloadUsers = true,
                 DefaultRetryMode = RetryMode.AlwaysRetry,
                 LargeThreshold = 250,
-                LogLevel = LogSeverity.Info,
+                LogLevel = LogSeverity.Warning,
                 RateLimitPrecision = RateLimitPrecision.Millisecond,
                 ExclusiveBulkDelete = true,
             });

@@ -69,31 +69,10 @@ namespace Archon
         {
             PostToConsole(msg);
 
-            try
-            {
-                IChannel channelToPost = null;
-                if (msg.Server != 0)
-                {
-                    var conf = await ServerConfigLoader.Get(msg.Server);
-                    if (conf.ContainsKey("botErrorLog") &&
-                        ulong.TryParse(conf["botErrorLog"].ToString(), out var id))
-                    {
-                        channelToPost = Bot.Client.GetChannel(id);
-                    }
-                }
-                else
-                {
-                    var guyingrey = Bot.Client.GetUser(126481324017057792);
-                    if (guyingrey is null) { return; }
-                    channelToPost = await guyingrey.GetOrCreateDMChannelAsync();
-                }
-
-                if (channelToPost is ITextChannel channel)
-                {
-                    var e = msg.ToEmbed(Bot.Client.CurrentUser).Build();
-                    await channel.SendMessageAsync(embed: e);
-                }
-            } catch { }
+            var toPost = Bot.Client.GetChannel(814330280969895936) as IMessageChannel;
+            if (toPost is null) { return; }
+            var e = msg.ToEmbed(Bot.Client.CurrentUser).Build();
+            await toPost.SendMessageAsync(embed: e);
         }
 
         private static void PostToConsole(Log log)

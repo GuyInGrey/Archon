@@ -5,8 +5,11 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
+using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+
+using Newtonsoft.Json;
 
 using DiscordCommands = Discord.Commands.CommandService;
 
@@ -26,7 +29,7 @@ namespace Templar
             _Bot = bot;
             _Commands = new DiscordCommands(new CommandServiceConfig()
             {
-                LogLevel = Discord.LogSeverity.Info,
+                LogLevel = Discord.LogSeverity.Warning,
                 CaseSensitiveCommands = false,
                 DefaultRunMode = RunMode.Async,
                 IgnoreExtraArgs = false,
@@ -34,11 +37,47 @@ namespace Templar
             });
             _Bot.Client.InteractionCreated += async a =>
             {
-                RegisteredInteractions.Where(i => i.Item1.Name == a.Data.Name)
-                    .ToList().ForEach(i =>
+                var run = 0;
+                var error = false;
+
+                var toRun = RegisteredInteractions.Where(i => i.Item1.Name == a.Data.Name)
+                    .ToList();
+
+                foreach (var i in toRun)
+                {
+                    try
                     {
-                        i.Item2.Invoke(null, new object[] { a });
+                        var o = i.Item2.Invoke(null, new object[] { a });
+                        if (o is Task t)
+                        {
+                            t.GetAwaiter().GetResult();
+                        }
+                        run++;
+                    }
+                    catch (Exception e)
+                    {
+                        await Log.FromException(e).Post();
+                        await a.FollowupAsync("I've run into an error. I've let my owner know.");
+                        error = true;
+                    }
+                }
+
+                if (run == 0 && !error)
+                {
+                    var data = JsonConvert.SerializeObject(a.Data, new JsonSerializerSettings()
+                    {
+                        NullValueHandling = NullValueHandling.Ignore,
+                        Formatting = Formatting.Indented,
                     });
+                    await new Log()
+                    {
+                        Server = a.Guild is null ? 0 : a.Guild.Id,
+                        Title = "Unhandled Interaction",
+                        Color = Color.Red,
+                        Content = $"\n```\nData:\n```json\n{data}\n```\n```\nChannel: {a.Channel.Mention}",
+                    }.Post();
+                    await a.FollowupAsync("Looks like I'm not ready to handle that command yet.");
+                }
             };
             _Commands.Log += async a => { Console.WriteLine("BOB"); bot.EventService.OnEvent("Log", a); };
             _Commands.CommandExecuted += async (a, b, c) => { bot.EventService.OnEvent("CommandExecuted", a, b, c); };

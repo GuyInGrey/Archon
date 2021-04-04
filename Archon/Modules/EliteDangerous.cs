@@ -39,7 +39,6 @@ namespace Archon.Modules
                 await cmd.DeleteAsync();
             }
 
-
             var props = new SlashCommandCreationProperties()
             {
                 Name = "elite",
@@ -175,14 +174,7 @@ namespace Archon.Modules
                 },
             };
 
-            Console.WriteLine(props.ToString());
             await Bot.Instance.Client.Rest.CreateGuildCommand(props, 769057370646511628);
-        }
-
-        [Interaction("elite")]
-        public static async Task Interaction(SocketInteraction i)
-        {
-            await i.FollowupAsync("```js\n" + JsonConvert.SerializeObject(i.Data, Formatting.Indented) + "\n```");
         }
 
         //[Clockwork(1000 * 60 * 60 /* 60 minutes */)]
@@ -313,11 +305,36 @@ namespace Archon.Modules
                 {
                     c.Topic = topic;
                 });
-            } catch { }
+            }
+            catch { }
         }
 
-        [Command("status")]
-        public async Task Status()
+        [Interaction("elite")]
+        public static async Task Interaction(SocketInteraction i)
+        {
+            switch (i.Data.Options.First().Name)
+            {
+                case "status":
+                    await Status(i);
+                    break;
+                case "carrier":
+                    await Carrier(i);
+                    break;
+                case "faction":
+                    throw new Exception("Testing Interaction Exception");
+                    break;
+                case "system":
+                    switch (i.Data.Options.First().Options.First().Name)
+                    {
+                        case "distance":
+                            await Distance(i);
+                            break;
+                    }
+                    break;
+            }
+        }
+
+        public static async Task Status(SocketInteraction i)
         {
             var status = JObject.Parse(Extensions.DownloadString(EDSMUrl + "api-status-v1/elite-server"));
             var time = DateTime.UtcNow.AddYears(1286);
@@ -326,23 +343,26 @@ namespace Archon.Modules
                 .WithFooter(time.ToString())
                 .WithTitle("Elite Server Status")
                 .WithDescription(status["message"].Value<string>());
-            await ReplyAsync(embed: e.Build());
+            await i.FollowupAsync(embed: e.Build());
         }
 
-        [Command("carrier")]
-        public async Task Carrier(string carrierID = "QNQ-WTK")
+        public static async Task Carrier(SocketInteraction i)
         {
+            var carrierID =
+                i.Data.Options.First().Options is null ?
+                "QNQ-WTK" :
+                i.Data.Options.First().Options.First().Value.ToString();
             carrierID = carrierID.ToUpper();
             if (!Regex.IsMatch(carrierID, "[A-Z0-9]{3}-[A-Z0-9]{3}"))
             {
-                await ReplyAsync("That is not a valid carrier ID.");
+                await i.FollowupAsync("That is not a valid carrier ID.");
                 return;
             }
 
             var carrierArray = JArray.Parse(Extensions.DownloadString(FleetCarrierUrl + carrierID));
             if (carrierArray.Count == 0)
             {
-                await ReplyAsync("I couldn't find a carrier with that ID.");
+                await i.FollowupAsync("I couldn't find a carrier with that ID.");
                 return;
             }
 
@@ -359,22 +379,24 @@ namespace Archon.Modules
                 .AddField("Location", carrier["current_system"].Value<string>())
                 .AddField("Services", servicesString);
 
-            await ReplyAsync(embed: e.Build());
+            await i.FollowupAsync(embed: e.Build());
         }
 
-        [Command("distance")]
-        public async Task Distance(string system1, string system2)
+        public static async Task Distance(SocketInteraction i)
         {
+            var system1 = i.Data.Options.First().Options.First().Options.First().Value.ToString();
+            var system2 = i.Data.Options.First().Options.First().Options.ElementAt(1).Value.ToString();
+
             var (x, y, z) = GetCoords(system1);
             if (float.IsNaN(x))
             {
-                await ReplyAsync($"`{system1}` is not a known system.");
+                await i.FollowupAsync($"`{system1}` is not a known system.");
                 return;
             }
             var sys2 = GetCoords(system2);
             if (float.IsNaN(sys2.x))
             {
-                await ReplyAsync($"`{system2}` is not a known system.");
+                await i.FollowupAsync($"`{system2}` is not a known system.");
                 return;
             }
 
@@ -387,7 +409,7 @@ namespace Archon.Modules
                 .WithTitle("Distance")
                 .WithDescription($"{system1} - {system2}\n{distance:0.00} ly");
 
-            await ReplyAsync(embed: e.Build());
+            await i.FollowupAsync(embed: e.Build());
         }
 
         public static (float x, float y, float z) GetCoords(string systemName)

@@ -21,14 +21,9 @@ namespace Templar
         public string Title = "";
         public string Content = "";
         public Dictionary<string, string> Fields = new();
-        public ulong Server { get; }
+        public ulong Server = 0;
 
         public Color Color = Color.Green;
-
-        public Log(ulong server)
-        {
-            Server = server;
-        }
 
         public async Task Post()
         {
@@ -54,8 +49,12 @@ namespace Templar
             var e = new EmbedBuilder()
                 .WithTimestamp(new DateTimeOffset(Timestamp))
                 .WithTitle(Title)
-                .WithColor(Color)
-                .WithAuthor(author);
+                .WithColor(Color);
+
+            if (author is not null)
+            {
+                e.WithAuthor(author);
+            }
 
             var con = Content.Trim();
             if (con.Length == 0) { }
@@ -93,8 +92,9 @@ namespace Templar
             var stackParts = (e.InnerException?.StackTrace ?? e.StackTrace).SplitWithLength(1000);
             if (e is CommandException ex)
             {
-                var logEx = new Log(ex.Context.Guild is null ? 0 : ex.Context.Guild.Id)
+                var logEx = new Log()
                 {
+                    Server = ex.Context.Guild is null ? 0 : ex.Context.Guild.Id,
                     Title = ex.InnerException.GetType().Name,
                     Content = ex.InnerException.Message,
                     Color = Color.Orange,
@@ -110,7 +110,7 @@ namespace Templar
                 return logEx;
             }
 
-            var log = new Log(0)
+            var log = new Log()
             {
                 Title = e.GetType().Name,
                 Content = e.Message,
@@ -122,8 +122,9 @@ namespace Templar
 
         public static Log InformationFromContext(ICommandContext c, string info)
         {
-            return new Log(c.Guild is null ? 0 : c.Guild.Id)
+            return new Log()
             {
+                Server = c.Guild is null ? 0 : c.Guild.Id,
                 Title = "Info",
                 Content = info,
                 Color = Color.Blue,
@@ -140,7 +141,7 @@ namespace Templar
         {
             if (m.Exception is null)
             {
-                return new Log(0)
+                return new Log()
                 {
                     Title = m.Message,
                 }.WithField("Severity", m.Severity);

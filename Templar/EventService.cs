@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 
 using Discord.Commands;
 
@@ -70,7 +71,10 @@ namespace Templar
         {
             try
             {
-                ToExecute?.Invoke(null, args);
+                Task.Run(() =>
+                {
+                    ToExecute?.Invoke(null, args);
+                });
                 return true;
             }
             catch
