@@ -1,4 +1,4 @@
 # Archon
-ARCHON, the Rursively Computing Helpful Omniscient Network
+ARCHON, the Recursively Computing Helpful Omniscient Network
 
 A Discord bot
